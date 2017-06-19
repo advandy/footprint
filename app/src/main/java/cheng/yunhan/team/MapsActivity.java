@@ -2,12 +2,15 @@ package cheng.yunhan.team;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
@@ -21,6 +24,12 @@ import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
 import org.w3c.dom.Text;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+
+import cheng.yunhan.team.Service.LocationService;
 
 public class MapsActivity extends FragmentActivity implements OnMapReadyCallback {
 
@@ -75,20 +84,9 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
             }
         });
 
-        LocationManager locationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
-        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            // TODO: Consider calling
-            //    ActivityCompat#requestPermissions
-            // here to request the missing permissions, and then overriding
-            //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
-            //                                          int[] grantResults)
-            // to handle the case where the user grants the permission. See the documentation
-            // for ActivityCompat#requestPermissions for more details.
-            return;
-        }
-        locationManager.requestSingleUpdate(LocationManager.NETWORK_PROVIDER, new LocationListener() {
+        LocationService.getCurrentLocation(getApplicationContext(), new LocationService.LocationGotListner() {
             @Override
-            public void onLocationChanged(Location location) {
+            public void onLocationGot(Location location) {
                 Double latitude = location.getLatitude();
                 Double longituede = location.getLongitude();
                 LatLng sydney = new LatLng(latitude, longituede);
@@ -96,28 +94,30 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 LatLng sydney2 = new LatLng(latitude - 0.3, longituede);
                 LatLng sydney3 = new LatLng(latitude - 0.5, longituede);
 
+                Geocoder geocoder = new Geocoder(getApplicationContext(), Locale.getDefault());
+                try {
+
+                    List<Address> addresses =  geocoder.getFromLocation(
+                            location.getLatitude(),
+                            location.getLongitude(),
+                            // In this sample, get just a single address.
+                            1);
+                    Address address = addresses.get(0);
+                    String addstr = address.getAddressLine(address.getMaxAddressLineIndex());
+                    String local = address.getLocality();
+                    Log.e("","");
+
+
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
                 mMap.addMarker(new MarkerOptions().position(sydney).title("Marker in Sydney")).setTag("adfb");
                 mMap.addMarker(new MarkerOptions().position(sydney1).title("Marker in Sydney")).setTag("addd");
                 mMap.addMarker(new MarkerOptions().position(sydney2).title("Marker in Sydney")).setTag("dfdfbbbbbdfdf");
                 mMap.addMarker(new MarkerOptions().position(sydney3).title("Marker in Sydney")).setTag("xxx");
                 mMap.moveCamera(CameraUpdateFactory.newLatLng(sydney));
             }
-
-            @Override
-            public void onStatusChanged(String provider, int status, Bundle extras) {
-
-            }
-
-            @Override
-            public void onProviderEnabled(String provider) {
-
-            }
-
-            @Override
-            public void onProviderDisabled(String provider) {
-
-            }
-        }, null);
-
+        });
     }
 }
