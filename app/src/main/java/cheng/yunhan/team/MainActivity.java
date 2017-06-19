@@ -1,20 +1,25 @@
 package cheng.yunhan.team;
 
-import android.content.Intent;
-import android.net.Uri;
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.TextView;
-import android.widget.Toast;
+
+import com.dropbox.core.android.Auth;
+import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.users.FullAccount;
+
 
 import org.json.JSONException;
 import org.json.JSONObject;
-import org.w3c.dom.Text;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -22,7 +27,14 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import cheng.yunhan.team.Service.DropboxClientBuilder;
+import cheng.yunhan.team.Service.DropboxUploadTask;
+import cheng.yunhan.team.Service.DropboxUserAccountTask;
+
 public class MainActivity extends AppCompatActivity {
+
+    private static final String DROPBOX_ACCESS_TOCKEN = "VfPwhhKoE5EAAAAAAAB94t4F_rQjfbRHAVFmZb8_09GOUZ3dYDf4a9KFCRDCywQw";
+    private static final String APP_KEY = "35qtgpn2kymq71t";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,6 +43,63 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
     }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        String accessToken;
+        SharedPreferences prefs = getSharedPreferences("dropboxIntegration", Context.MODE_PRIVATE);
+        accessToken = prefs.getString("access-token", null);
+        if (accessToken == null) {
+            accessToken = Auth.getOAuth2Token(); //generate Access Token
+        }
+        if (accessToken != null) {
+            //Store accessToken in SharedPreferences
+            prefs.edit().putString("access-token", accessToken).apply();
+            DbxClientV2 client = DropboxClientBuilder.build(accessToken);
+            final String finalAccessToken = accessToken;
+            new DropboxUserAccountTask(client, new DropboxUserAccountTask.AccountListner() {
+                @Override
+                public void onAccountReceived(FullAccount account) {
+                    File root = new File(Environment.getExternalStorageDirectory(), "Notes");
+                    if (!root.exists()) {
+                        root.mkdirs();
+                    }
+                    File gpxfile = new File(root, "test_file.txt");
+                    FileWriter writer = null;
+                    try {
+                        writer = new FileWriter(gpxfile);
+                        writer.append("hello world");
+                        writer.flush();
+                        writer.close();
+                        new DropboxUploadTask(finalAccessToken, gpxfile, getApplicationContext(), new DropboxUploadTask.DropboxUploadListener() {
+                            @Override
+                            public void onUploaded(File file) {
+                                Log.e("","");
+                            }
+
+                            @Override
+                            public void onError(Exception error) {
+                                Log.e("","");
+                            }
+                        }).execute();
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+
+
+                }
+
+                @Override
+                public void onError(Exception error) {
+
+                }
+            }).execute();
+        } else {
+            Auth.startOAuth2Authentication(getApplicationContext(), APP_KEY);
+        }
+    }
+
 
     private class DownloadFilesTask extends AsyncTask<Object, Object, JSONObject> {
         protected JSONObject doInBackground(Object... params) {
