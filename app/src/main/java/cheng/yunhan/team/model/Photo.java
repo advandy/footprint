@@ -1,8 +1,8 @@
 package cheng.yunhan.team.model;
 
 import android.location.Location;
+import android.net.Uri;
 
-import java.net.URL;
 
 /**
  * Created by D060753 on 19.06.2017.
@@ -10,17 +10,28 @@ import java.net.URL;
 
 public class Photo {
     private Location location;
-    private URL url;
+    private Uri uri;
     private int day;
     private int month;
     private int year;
+    private int cw;
 
-    public Photo(Location location, URL url, int day, int month, int year) {
+    public Photo(Location location, Uri url, int day, int month, int year, int cw) {
         this.location = location;
-        this.url = url;
+        this.uri = url;
         this.day = day;
         this.month = month;
         this.year = year;
+        this.cw = cw;
+
+    }
+
+    public int getCw() {
+        return cw;
+    }
+
+    public void setCw(int cw) {
+        this.cw = cw;
     }
 
     public void setDay(int day) {
@@ -51,16 +62,16 @@ public class Photo {
         return location;
     }
 
-    public URL getUrl() {
-        return url;
+    public Uri getUri() {
+        return uri;
     }
 
     public void setLocation(Location location) {
         this.location = location;
     }
 
-    public void setUrl(URL url) {
-        this.url = url;
+    public void setUri(Uri uri) {
+        this.uri = uri;
     }
 
 }

@@ -3,7 +3,6 @@ package cheng.yunhan.team.Service;
 import android.os.AsyncTask;
 
 import com.dropbox.core.DbxException;
-import com.dropbox.core.DbxWebAuth;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.users.FullAccount;
 
@@ -14,16 +13,16 @@ import com.dropbox.core.v2.users.FullAccount;
 public class DropboxUserAccountTask extends AsyncTask<Void, Void, FullAccount> {
 
     public DbxClientV2 clientV2;
-    public  AccountListner listner;
+    public AccountListener listener;
     public DbxException error;
 
-    public interface AccountListner {
+    public interface AccountListener {
         public void onAccountReceived(FullAccount account);
         public void onError(Exception error);
     }
-    public DropboxUserAccountTask(DbxClientV2 clientV2, AccountListner listner) {
-        this.clientV2 = clientV2;
-        this.listner = listner;
+    public DropboxUserAccountTask(String accessToken, AccountListener listener) {
+        this.clientV2 = DropboxClientBuilder.build(accessToken);
+        this.listener = listener;
     }
 
     @Override
@@ -41,9 +40,9 @@ public class DropboxUserAccountTask extends AsyncTask<Void, Void, FullAccount> {
     protected void onPostExecute(FullAccount account) {
         super.onPostExecute(account);
         if (account != null && error == null) {
-            listner.onAccountReceived(account);
+            listener.onAccountReceived(account);
         } else {
-            listner.onError(error);
+            listener.onError(error);
         }
     }
 }

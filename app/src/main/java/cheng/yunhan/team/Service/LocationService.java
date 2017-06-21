@@ -10,11 +10,6 @@ import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
-import android.util.Log;
-
-import com.google.android.gms.maps.CameraUpdateFactory;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.MarkerOptions;
 
 import java.io.IOException;
 import java.util.List;
@@ -27,6 +22,25 @@ import java.util.Locale;
 public class LocationService {
     public interface LocationGotListner{
       void onLocationGot(Location location);
+    }
+
+    public static String getLocationName(Context context, Location location) throws IOException {
+        String locationName = null;
+        Geocoder geocoder = new Geocoder(context, Locale.getDefault());
+        List<Address> addresses = geocoder.getFromLocation(location.getLatitude(), location.getLongitude(), 10);
+
+        for (Address ads: addresses) {
+            for (int i = 0; i <= ads.getMaxAddressLineIndex(); i++) {
+                if (locationName == null) {
+                    locationName = ads.getAddressLine(i);
+                } else {
+                    locationName = locationName + ", " + ads.getAddressLine(i);
+                }
+            }
+            return locationName;
+        }
+
+        return locationName;
     }
     public static void getCurrentLocation(Context context, final LocationGotListner gotLocation) {
         LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);

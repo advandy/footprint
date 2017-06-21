@@ -44,7 +44,7 @@ public class DropboxUploadTask extends AsyncTask {
         try {
             InputStream inputStream = new FileInputStream(file);
 
-            clientV2.files().uploadBuilder("/Apps/Footprint_yunhan/" + file.getName())
+            clientV2.files().uploadBuilder("/" + file.getName())
                     .withMode(WriteMode.OVERWRITE)
                     .uploadAndFinish(inputStream);
         } catch (FileNotFoundException e) {
