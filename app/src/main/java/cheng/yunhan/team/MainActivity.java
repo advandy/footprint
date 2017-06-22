@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
@@ -19,12 +20,23 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dropbox.core.android.Auth;
+import com.dropbox.core.v2.files.FileMetadata;
+import com.dropbox.core.v2.files.ListFolderResult;
+import com.dropbox.core.v2.files.Metadata;
 import com.dropbox.core.v2.users.FullAccount;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
 import java.util.Calendar;
+import java.util.List;
 
+import cheng.yunhan.team.Service.DropboxContentHasher;
+import cheng.yunhan.team.Service.DropboxFileMetadataRequest;
+import cheng.yunhan.team.Service.DropboxListFolderTask;
 import cheng.yunhan.team.Service.DropboxUploadTask;
 import cheng.yunhan.team.Service.DropboxUserAccountTask;
 import cheng.yunhan.team.Service.LocationService;
@@ -69,16 +81,56 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        new DropboxFileMetadataRequest("20170622_150527_-1041569194.jpg","VfPwhhKoE5EAAAAAAAB-BMWse-hA2v_Q-1Afo9BJqrdDzGOE0BVmlz_z9mW9PO0C").execute();
+
         File storageDir = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES), "Footprint");
-        /*if(storageDir.exists()) {
+        if(storageDir.exists()) {
             File[] files = storageDir.listFiles();
-            for (File file : files) {
-                Bitmap thumbImage = ThumbnailUtils.extractThumbnail(
-                        BitmapFactory.decodeFile(file.getAbsolutePath()),
-                        400, 400);
-                Log.e("","");
+            for (File file: files) {
+                MessageDigest hasher = new DropboxContentHasher();
+                byte[] buf = new byte[1024];
+                InputStream in = null;
+                try {
+                    in = new FileInputStream(file.getAbsolutePath());
+                    try {
+                        while (true) {
+                            int n = in.read(buf);
+                            if (n < 0) break;  // EOF
+                            hasher.update(buf, 0, n);
+                        }
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    } finally {
+                        in.close();
+                    }
+
+                    String hex = DropboxContentHasher.hex(hasher.digest());
+                    Log.e("","");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
+        }
+/*        SharedPreferences prefs = getSharedPreferences("dropboxIntegration", Context.MODE_PRIVATE);
+        accessToken = prefs.getString("access-token", null);
+        if (accessToken != null) {
+            new DropboxListFolderTask(accessToken, "", new DropboxListFolderTask.FolderResultListener() {
+
+                @Override
+                public void onSuccess(ListFolderResult listFolderResult) {
+                    List<Metadata> metadataList = listFolderResult.getEntries();
+                    Metadata metadata = metadataList.get(0);
+                    int hashCode = metadata.hashCode();
+                    String hex = Integer.toHexString(hashCode);
+                    Log.e("","");
+                }
+
+                @Override
+                public void onError() {
+
+                }
+            }).execute();
         }*/
     }
 
