@@ -11,9 +11,9 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -38,6 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imageView;
     private TextView textView;
     private boolean continueUpload = false;
+    private FloatingActionButton uploadBtn;
     private String accessToken = null;
 
     @Override
@@ -46,7 +47,8 @@ public class MainActivity extends AppCompatActivity {
         setTheme(R.style.Theme_AppCompat_Light_NoActionBar);
         setContentView(R.layout.activity_main);
 
-        Button cameraBtn = (Button)findViewById(R.id.camera);
+        FloatingActionButton cameraBtn = (FloatingActionButton) findViewById(R.id.takePhoto);
+        uploadBtn = (FloatingActionButton) findViewById(R.id.upload);
         imageView = (ImageView)findViewById(R.id.imageView);
         textView = (TextView) findViewById(R.id.description);
         cameraBtn.setOnClickListener(new View.OnClickListener() {
@@ -71,24 +73,29 @@ public class MainActivity extends AppCompatActivity {
 
         File storageDir = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES), "Footprint");
-        /*if(storageDir.exists()) {
-            File[] files = storageDir.listFiles();
-            for (File file : files) {
-                Bitmap thumbImage = ThumbnailUtils.extractThumbnail(
-                        BitmapFactory.decodeFile(file.getAbsolutePath()),
-                        400, 400);
-                Log.e("","");
+
+        uploadBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                SharedPreferences prefs = getSharedPreferences("dropboxIntegration", Context.MODE_PRIVATE);
+                accessToken = prefs.getString("access-token", null);
+
+                if (accessToken == null) {
+                    Auth.startOAuth2Authentication(getApplicationContext(), getString(R.string.dropbox_app_key));
+                    continueUpload = true;
+                } else {
+                    uploadToDropBox(accessToken, photoUri);
+                }
             }
-        }*/
+        });
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            continueUpload = true;
             Bitmap thumbImage = ThumbnailUtils.extractThumbnail(
                     BitmapFactory.decodeFile(photoUri.getEncodedPath()),
-                    400, 400);
+                    imageView.getWidth(), imageView.getHeight());
 
 
             Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
@@ -114,19 +121,38 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             });
+        }
+    }
 
-            SharedPreferences prefs = getSharedPreferences("dropboxIntegration", Context.MODE_PRIVATE);
-            accessToken = prefs.getString("access-token", null);
+    private void uploadToDropBox(String accessToken, Uri photoUri) {
+        if (NetworkStatusService.isConnectedWithWifi(getApplicationContext())){
+            new DropboxUploadTask(accessToken, new File(photoUri.getEncodedPath()), getApplicationContext(), new DropboxUploadTask.DropboxUploadListener() {
+                @Override
+                public void onUploaded(File file) {
+                    Toast.makeText(getApplicationContext(), file.getName() + " is uploaded to Dropbox",Toast.LENGTH_SHORT)
+                            .show();
+                }
 
-            if (accessToken == null) {
-                Auth.startOAuth2Authentication(getApplicationContext(), getString(R.string.dropbox_app_key));
-            }
+                @Override
+                public void onError(Exception error) {
+                    Toast.makeText(getApplicationContext(), error.getMessage(), Toast.LENGTH_SHORT)
+                            .show();
+                }
+            }).execute();
+        } else {
+            Toast.makeText(getApplicationContext(), "Not connected with wifi", Toast.LENGTH_SHORT)
+                    .show();
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
+        if (photoUri == null) {
+            uploadBtn.setVisibility(View.INVISIBLE);
+        } else {
+            uploadBtn.setVisibility(View.VISIBLE);
+        }
         if (accessToken != null) {
             new DropboxUserAccountTask(accessToken, new DropboxUserAccountTask.AccountListener() {
                 @Override
@@ -150,26 +176,7 @@ public class MainActivity extends AppCompatActivity {
                 //Store accessToken in SharedPreferences
                 SharedPreferences prefs = getSharedPreferences("dropboxIntegration", Context.MODE_PRIVATE);
                 prefs.edit().putString("access-token", accessToken).apply();
-
-                if (NetworkStatusService.isConnectedWithWifi(getApplicationContext())){
-                    new DropboxUploadTask(accessToken, new File(photoUri.getEncodedPath()), getApplicationContext(), new DropboxUploadTask.DropboxUploadListener() {
-                        @Override
-                        public void onUploaded(File file) {
-                            Toast.makeText(getApplicationContext(), file.getName() + " is uploaded to Dropbox",Toast.LENGTH_SHORT)
-                                    .show();
-                        }
-
-                        @Override
-                        public void onError(Exception error) {
-                            Toast.makeText(getApplicationContext(), error.getMessage(), Toast.LENGTH_SHORT)
-                                    .show();
-                        }
-                    }).execute();
-                } else {
-                    Toast.makeText(getApplicationContext(), "Not connected with wifi", Toast.LENGTH_SHORT)
-                            .show();
-                }
-
+                uploadToDropBox(accessToken, photoUri);
             }
         }
     }
