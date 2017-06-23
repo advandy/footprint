@@ -5,6 +5,7 @@ import android.os.AsyncTask;
 
 import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
+import com.dropbox.core.v2.files.FileMetadata;
 import com.dropbox.core.v2.files.WriteMode;
 
 import java.io.File;
@@ -44,7 +45,7 @@ public class DropboxUploadTask extends AsyncTask {
         try {
             InputStream inputStream = new FileInputStream(file);
 
-            clientV2.files().uploadBuilder("/" + file.getName())
+             clientV2.files().uploadBuilder("/" + file.getName())
                     .withMode(WriteMode.OVERWRITE)
                     .uploadAndFinish(inputStream);
         } catch (FileNotFoundException e) {

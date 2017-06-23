@@ -13,18 +13,30 @@ import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dropbox.core.android.Auth;
+import com.dropbox.core.v2.files.FileMetadata;
+import com.dropbox.core.v2.files.ListFolderResult;
+import com.dropbox.core.v2.files.Metadata;
 import com.dropbox.core.v2.users.FullAccount;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
+import java.security.MessageDigest;
 import java.util.Calendar;
+import java.util.List;
 
+import cheng.yunhan.team.Service.DropboxContentHasher;
+import cheng.yunhan.team.Service.DropboxFileMetadataRequest;
+import cheng.yunhan.team.Service.DropboxListFolderTask;
 import cheng.yunhan.team.Service.DropboxUploadTask;
 import cheng.yunhan.team.Service.DropboxUserAccountTask;
 import cheng.yunhan.team.Service.LocationService;
@@ -70,6 +82,8 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
         });
+
+        new DropboxFileMetadataRequest("20170622_150527_-1041569194.jpg","VfPwhhKoE5EAAAAAAAB-BMWse-hA2v_Q-1Afo9BJqrdDzGOE0BVmlz_z9mW9PO0C").execute();
 
         File storageDir = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES), "Footprint");
