@@ -3,42 +3,32 @@ package cheng.yunhan.team;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.location.Location;
-import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.BaseAdapter;
+import android.widget.GridView;
 import android.widget.ImageView;
-import android.widget.TextView;
 import android.widget.Toast;
 
+import com.bumptech.glide.Glide;
+import com.bumptech.glide.request.RequestOptions;
 import com.dropbox.core.android.Auth;
-import com.dropbox.core.v2.files.FileMetadata;
-import com.dropbox.core.v2.files.ListFolderResult;
-import com.dropbox.core.v2.files.Metadata;
-import com.dropbox.core.v2.users.FullAccount;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.InputStream;
-import java.security.MessageDigest;
+import java.util.ArrayList;
 import java.util.Calendar;
-import java.util.List;
 
-import cheng.yunhan.team.Service.DropboxContentHasher;
-import cheng.yunhan.team.Service.DropboxFileMetadataRequest;
-import cheng.yunhan.team.Service.DropboxListFolderTask;
+import cheng.yunhan.team.Service.DetailImageActivity;
 import cheng.yunhan.team.Service.DropboxUploadTask;
-import cheng.yunhan.team.Service.DropboxUserAccountTask;
 import cheng.yunhan.team.Service.LocationService;
 import cheng.yunhan.team.Service.NetworkStatusService;
 import cheng.yunhan.team.Service.TakePictureService;
@@ -47,12 +37,10 @@ import cheng.yunhan.team.model.Photo;
 public class MainActivity extends AppCompatActivity {
     static final int REQUEST_IMAGE_CAPTURE = 1;
     private Uri photoUri;
-    private ImageView imageView;
-    private TextView textView;
     private boolean continueUpload = false;
     private FloatingActionButton uploadBtn;
     private String accessToken = null;
-
+    private ImageAdapter imageAdapter;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,8 +49,6 @@ public class MainActivity extends AppCompatActivity {
 
         FloatingActionButton cameraBtn = (FloatingActionButton) findViewById(R.id.takePhoto);
         uploadBtn = (FloatingActionButton) findViewById(R.id.upload);
-        imageView = (ImageView)findViewById(R.id.imageView);
-        textView = (TextView) findViewById(R.id.description);
         cameraBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -83,7 +69,10 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        new DropboxFileMetadataRequest("20170622_150527_-1041569194.jpg","VfPwhhKoE5EAAAAAAAB-BMWse-hA2v_Q-1Afo9BJqrdDzGOE0BVmlz_z9mW9PO0C").execute();
+        GridView gridView = (GridView)findViewById(R.id.gridview);
+        imageAdapter = new ImageAdapter(getApplicationContext(), getImages());
+        gridView.setAdapter(imageAdapter);
+        
 
         File storageDir = new File(Environment.getExternalStoragePublicDirectory(
                 Environment.DIRECTORY_PICTURES), "Footprint");
@@ -104,18 +93,88 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
+    private ArrayList<String> getImages() {
+        File storageDir = new File(Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES), "Footprint");
+        ArrayList<String> list = new ArrayList<>();
+        if (storageDir != null) {
+            File[] files = storageDir.listFiles();
+            if (files != null) {
+                for (File file: files) {
+                    list.add(file.getAbsolutePath());
+                }
+            }
+        }
+        return list;
+    }
+
+    public class ImageAdapter extends BaseAdapter {
+        public ArrayList<String> paths;
+        private Context context;
+        private LayoutInflater inflater;
+
+        public ImageAdapter( Context context, ArrayList<String> paths) {
+            this.paths = paths;
+            this.context = context;
+            this.inflater = LayoutInflater.from(context);
+        }
+
+        @Override
+
+        public int getCount() {
+            return this.paths.size();
+        }
+
+        @Override
+        public Object getItem(int i) {
+            return paths.get(i);
+        }
+
+        @Override
+        public long getItemId(int i) {
+            return 0;
+        }
+
+        @Override
+        public View getView(final int i, View convertView, ViewGroup viewGroup) {
+            if (convertView == null) {
+                // if it's not recycled, initialize some attributes
+                convertView= inflater.inflate(R.layout.photo_thumbnail, viewGroup, false);
+            }
+            ImageView imageView = (ImageView) convertView.findViewById(R.id.imageView);
+            RequestOptions options = new RequestOptions();
+            options.centerCrop();
+            final String path = paths.get(i);
+            Glide.with(this.context)
+                    .load(path)
+                    .apply(options)
+                    .thumbnail(0.2f)
+                    .into(imageView);
+            final int currentItem = i;
+            convertView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent intent = new Intent(MainActivity.this, DetailImageActivity.class);
+                    intent.putExtra("currentItem", currentItem);
+                    intent.putExtra("paths", paths);
+                    startActivity(intent);
+                }
+            });
+
+
+            return convertView;
+        }
+    }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            Bitmap thumbImage = ThumbnailUtils.extractThumbnail(
-                    BitmapFactory.decodeFile(photoUri.getEncodedPath()),
-                    imageView.getWidth(), imageView.getHeight());
-
 
             Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
             mediaScanIntent.setData(photoUri);
+            imageAdapter.paths.add(photoUri.getEncodedPath());
+            imageAdapter.notifyDataSetChanged();
             this.sendBroadcast(mediaScanIntent);
-            imageView.setImageBitmap(thumbImage);
             final Photo photo = new Photo(null,
                     photoUri,
                     Calendar.getInstance().get(Calendar.DAY_OF_MONTH),
@@ -129,7 +188,6 @@ public class MainActivity extends AppCompatActivity {
 
                     try {
                         String locationName = LocationService.getLocationName(getApplicationContext(), location);
-                        textView.setText(locationName);
                     } catch (IOException e) {
                         e.printStackTrace();
                     }
@@ -158,41 +216,4 @@ public class MainActivity extends AppCompatActivity {
                     .show();
         }
     }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
-        if (photoUri == null) {
-            uploadBtn.setVisibility(View.INVISIBLE);
-        } else {
-            uploadBtn.setVisibility(View.VISIBLE);
-        }
-        if (accessToken != null) {
-            new DropboxUserAccountTask(accessToken, new DropboxUserAccountTask.AccountListener() {
-                @Override
-                public void onAccountReceived(FullAccount account) {
-                    String name = account.getName().getDisplayName();
-                    textView.setText("You are signed in with " + name);
-                }
-
-                @Override
-                public void onError(Exception error) {
-
-                }
-            }).execute();
-        }
-        if (continueUpload) {
-            continueUpload = false;
-            if (accessToken == null) {
-                accessToken = Auth.getOAuth2Token(); //generate Access Token
-            }
-            if (accessToken != null) {
-                //Store accessToken in SharedPreferences
-                SharedPreferences prefs = getSharedPreferences("dropboxIntegration", Context.MODE_PRIVATE);
-                prefs.edit().putString("access-token", accessToken).apply();
-                uploadToDropBox(accessToken, photoUri);
-            }
-        }
-    }
-
 }
