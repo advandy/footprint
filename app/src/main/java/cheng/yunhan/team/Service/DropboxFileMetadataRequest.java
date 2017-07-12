@@ -9,23 +9,28 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.net.URLEncoder;
 
 /**
  * Created by Yunhan on 22.06.2017.
  */
 
 public class DropboxFileMetadataRequest extends AsyncTask<Void, Void, Void> {
-    private String fileName;
+    private String filePath;
     private String accessToken;
+    private DropboxFileMetadataRequestCallback callback;
     private static String url = "https://api.dropboxapi.com/2/files/alpha/get_metadata";
 
-    public DropboxFileMetadataRequest(String fileName, String accessToken) {
-        this.fileName = fileName;
+    public DropboxFileMetadataRequest(String filePath, String accessToken, DropboxFileMetadataRequestCallback callback) {
+        this.filePath = filePath;
         this.accessToken = accessToken;
+        this.callback = callback;
+    }
+
+    public interface DropboxFileMetadataRequestCallback {
+        public void onSuccess(JSONObject jsonObject);
+        public void onError();
     }
 
 
@@ -34,14 +39,14 @@ public class DropboxFileMetadataRequest extends AsyncTask<Void, Void, Void> {
         try {
             URL urlEncoded = new URL(url);
             HttpURLConnection connection = (HttpURLConnection)urlEncoded.openConnection();
-           connection.setDoOutput(true);
+            connection.setDoOutput(true);
             connection.setRequestMethod("POST");
             connection.setRequestProperty("Content-Type", "application/json");
             connection.setRequestProperty("Authorization", "Bearer " + accessToken);
             connection.connect();
             JSONObject params = new JSONObject();
 
-            params.put("path", "/"+fileName);
+            params.put("path", filePath);
             params.put("include_media_info", false);
             params.put("include_deleted", false);
             params.put("include_has_explicit_shared_members", false);
@@ -62,8 +67,9 @@ public class DropboxFileMetadataRequest extends AsyncTask<Void, Void, Void> {
                 }
                 br.close();
                 JSONObject jsonObj = new JSONObject(sb.toString());
-                String hash = jsonObj.getString("content_hash");
-                System.out.println(""+sb.toString());
+                this.callback.onSuccess(jsonObj);
+                return null;
+
 
             } else {
                 System.out.println(connection.getResponseMessage());
@@ -75,6 +81,7 @@ public class DropboxFileMetadataRequest extends AsyncTask<Void, Void, Void> {
         } catch (JSONException e) {
             e.printStackTrace();
         }
+        this.callback.onError();
         return null;
     }
 }

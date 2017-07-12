@@ -6,8 +6,6 @@ import com.dropbox.core.DbxException;
 import com.dropbox.core.v2.DbxClientV2;
 import com.dropbox.core.v2.files.ListFolderResult;
 
-import static android.net.wifi.WifiConfiguration.Status.strings;
-
 /**
  * Created by Yunhan on 22.06.2017.
  */

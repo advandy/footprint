@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Calendar;
 
-import cheng.yunhan.team.Service.DetailImageActivity;
 import cheng.yunhan.team.Service.DropboxUploadTask;
 import cheng.yunhan.team.Service.LocationService;
 import cheng.yunhan.team.Service.NetworkStatusService;
@@ -36,6 +35,7 @@ import cheng.yunhan.team.model.Photo;
 
 public class MainActivity extends AppCompatActivity {
     static final int REQUEST_IMAGE_CAPTURE = 1;
+    static final int IMAGE_Gallery_View = 2;
     private Uri photoUri;
     private boolean continueUpload = false;
     private FloatingActionButton uploadBtn;
@@ -157,7 +157,7 @@ public class MainActivity extends AppCompatActivity {
                     Intent intent = new Intent(MainActivity.this, DetailImageActivity.class);
                     intent.putExtra("currentItem", currentItem);
                     intent.putExtra("paths", paths);
-                    startActivity(intent);
+                    startActivityForResult(intent, IMAGE_Gallery_View);
                 }
             });
 
@@ -168,7 +168,12 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
+        if (requestCode == IMAGE_Gallery_View && resultCode == RESULT_OK) {
+            if (data.getBooleanExtra("updated", true)) {
+                imageAdapter.paths = getImages();
+                imageAdapter.notifyDataSetChanged();
+            }
+        } else if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
 
             Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
             mediaScanIntent.setData(photoUri);
